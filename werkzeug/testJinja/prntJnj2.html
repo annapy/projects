@@ -1,0 +1,18 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html lang="en">
+<head>
+    {% block head %}
+    <link rel="stylesheet" href="style.css" />
+    <title>{% block title %}{% endblock %} This is from parent template</title>
+    {% endblock head %}
+</head>
+<body>
+    <ul>
+    {% for element in list %}
+        <li> {{ list[element-1] }}</li>
+    {% endfor %}
+    </ul>
+    <h1>Calling self() to repeat block here- {{ self.title() }}</h1>
+    <h2>Printing the value of a var here- {{ var }} </h2>
+</body>
+</html>

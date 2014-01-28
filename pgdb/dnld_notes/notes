@@ -1,0 +1,25 @@
+  Downloading psycopg2-2.5.2.tar.gz (685kB): 685kB downloaded
+    Running setup.py (path:/home/vagrant/venvs/pydb/build/psycopg2/setup.py) egg_info for package psycopg2
+
+        Error: You need to install postgresql-server-dev-X.Y for building a server-side extension or libpq-dev for building a client-side application.
+
+            Complete output from command python setup.py egg_info:
+                running egg_info
+
+                creating pip-egg-info/psycopg2.egg-info
+
+                writing pip-egg-info/psycopg2.egg-info/PKG-INFO
+
+                writing top-level names to pip-egg-info/psycopg2.egg-info/top_level.txt
+
+                writing dependency_links to pip-egg-info/psycopg2.egg-info/dependency_links.txt
+
+                writing manifest file 'pip-egg-info/psycopg2.egg-info/SOURCES.txt'
+
+                warning: manifest_maker: standard file '-c' not found
+
+
+
+                Error: You need to install postgresql-server-dev-X.Y for building a server-side extension or libpq-dev for building a client-side application.
+
+

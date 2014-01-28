@@ -1,0 +1,12 @@
+#Archana: Just notes to see the contents of various objects
+{'wsgi.multiprocess': False, 'SERVER_SOFTWARE': 'Werkzeug/0.9.4', 'SCRIPT_NAME': '', 'REQUEST_METHOD': 'GET', 
+'PATH_INFO': '/', 'SERVER_PROTOCOL': 'HTTP/1.1', 'QUERY_STRING': '', 'werkzeug.server.shutdown': <function shutdown_server at 0x16d9de8>, 
+'CONTENT_LENGTH': '', 'HTTP_USER_AGENT': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.76 Safari/537.36', 
+'HTTP_CONNECTION': 'keep-alive', 'SERVER_NAME': '192.168.33.10', 'REMOTE_PORT': 63857, 'wsgi.url_scheme': 'http', 'SERVER_PORT': '5003', 
+'werkzeug.request': <Request 'http://192.168.33.10:5003/' [GET]>, 'wsgi.input': <socket._fileobject object at 0x16d8250>, 
+'HTTP_DNT': '1', 'HTTP_HOST': '192.168.33.10:5003', 'wsgi.multithread': False, 'HTTP_CACHE_CONTROL': 'max-age=0',
+'HTTP_ACCEPT': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8', 'wsgi.version': (1, 0), 
+'wsgi.run_once': False, 'wsgi.errors': <open file '<stderr>', mode 'w' at 0x7fecf5fd7270>, 'REMOTE_ADDR': '192.168.33.1', 'HTTP_ACCEPT_LANGUAGE': 'en-US,en;q=0.8', 
+'CONTENT_TYPE': '', 'HTTP_ACCEPT_ENCODING': 'gzip,deflate,sdch'}
+
+4536
