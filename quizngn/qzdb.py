@@ -34,7 +34,7 @@ class Quiz(db.Model):
         self.no_ques = no_ques
 
     def __repr__(self):
-        return '%i   %s     %s     %s      %i' % (self.qzid, self.title, self.difficulty_level, (self.text).ljust(20), self.no_ques)
+        return '%i   %s     %s     %s     %i' % (self.qzid, self.title, self.difficulty_level, (self.text).ljust(20), self.no_ques)
                     
 
 class Question(db.Model):
@@ -58,7 +58,7 @@ class Question(db.Model):
         self.qzid = qzid
 
     def __repr__(self):
-        return '%i       %s           %s       %i' % (self.qid, self.ques_text, self.ans_text, self.qzid)
+        return '%i     %i          %s   %s' % (self.qid, self.qzid, self.ques_text, self.ans_text)
 
 class Anschoice(db.Model):
     ansid      = db.Column(db.Integer, primary_key = True)
@@ -81,33 +81,33 @@ class Anschoice(db.Model):
         self.correct    = correct
 
     def __repr__(self):
-        return '%i    %i     %i         %s                  %r' % (self.ansid, self.qzid, self.qid, self.ans_choice, self.correct)
+        return '%i        %i     %i     %s      %r' % (self.ansid, self.qzid, self.qid, self.ans_choice, self.correct)
 
 
 def db_init():
     db.drop_all()
     db.create_all()
 
-    qz1 = Quiz( "Python Basics", "Simple", "This quiz tests you on various fundamentals", 2)
-    qz2 = Quiz( "Python Advanced", "Moderate", "No text")
+    qz1 = Quiz( "Python Basics  ", "Simple  ", "Explanation", 2)
+    qz2 = Quiz( "Python Advanced", "Moderate", "No text    ")
     db.session.add(qz1)
     db.session.add(qz2)
     db.session.commit()
 
-    ques1 = Question("What does the following code do? def foo(): pass", 
-                      "You can define a function in python which does nothing",1)
-    ques2 = Question("Is python an Object oriented programming language?", 
-                      "Yes python is an OOP language",1)
+    ques1 = Question("What does 'def foo(): pass do", 
+                      "A fn which does nothing",1)
+    ques2 = Question("Is python an OOP l           ", 
+                      "Yes python is an OOP l",1)
     db.session.add(ques1)
     db.session.add(ques2)
     db.session.commit()
 
-    ans1  = Anschoice(1, 1, "a. This function does nothing", True)
-    ans2  = Anschoice(1, 1, "b. This function returns a function called pass", False)
-    ans3  = Anschoice(1, 1, "c. This function is not yet defined. It will give error", False)
-    ans4  = Anschoice(1, 2, "a. Yes Python is object oriented", True)
+    ans1  = Anschoice(1, 1, "a. This function does nothing      ", True)
+    ans2  = Anschoice(1, 1, "b. This function returns a fn pass ", False)
+    ans3  = Anschoice(1, 1, "c. This function is not yet defined", False)
+    ans4  = Anschoice(1, 2, "a. Yes Python is object oriented   ", True)
     ans5  = Anschoice(1, 2, "b. No Python is not object oriented", False)
-    ans6  = Anschoice(1, 2, "c. Python may or may not be used as an object oriented language", True)
+    ans6  = Anschoice(1, 2, "c. Python may not be used as OOP l ", True)
     db.session.add(ans1)
     db.session.add(ans2)
     db.session.add(ans3)

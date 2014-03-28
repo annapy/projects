@@ -51,14 +51,18 @@ class QuizzesAPI(Resource):
 
         '''Query from quiz table'''
         Query_obj = qzdb.Quiz.query.order_by(qzdb.Quiz.qzid).all()
-        if Query_obj == []:
+        import pdb; pdb.set_trace()
+        if not Query_obj:
             response = handle_invalid_usage(InvalidUsage('Error: No quizzes found',status_code=404))
             return response
 
         '''Return response'''
-        resp_fields = ['qzid','title', 'difficulty_level', 'text','no_ques']
-        relnshp_flag = 0
-        quizzes = utls.serialize_to_json(resp_fields, Query_obj, relnshp_flag)
+        response_fields = [{'name':'qzid', 'relnshp':False,'subfields':None},
+                           {'name':'title','relnshp':False,'subfields':None}, 
+                           {'name':'difficulty_level','relnshp':False,'subfields':None}, 
+                           {'name':'text','relnshp':False,'subfields':None}, 
+                           {'name':'no_ques','relnshp':False,'subfields':None}] 
+        quizzes = utls.serialize_to_json(response_fields, Query_obj)
         print "Json response"
         print "=============\n"
         print '{\'quizzes\':%s}\n' %(quizzes)
@@ -93,9 +97,12 @@ class QuizzesAPI(Resource):
         '''Return response'''
         location = "/api/quizzes/"+str(Quiz_obj.qzid)
         Query_obj = qzdb.Quiz.query.filter_by(qzid=Quiz_obj.qzid).all()
-        resp_fields = ['qzid','title', 'difficulty_level', 'text','no_ques']
-        relnshp_flag = 0
-        quiz = utls.serialize_to_json(resp_fields, Query_obj, relnshp_flag)
+        response_fields = [{'name':'qzid', 'relnshp':False,'subfields':None},
+                           {'name':'title','relnshp':False,'subfields':None}, 
+                           {'name':'difficulty_level','relnshp':False,'subfields':None}, 
+                           {'name':'text','relnshp':False,'subfields':None}, 
+                           {'name':'no_ques','relnshp':False,'subfields':None}] 
+        quiz = utls.serialize_to_json(response_fields, Query_obj)
         print "Json response"
         print "=============\n"
         print '{\'quiz\':%s\n}' %(quiz)
@@ -126,14 +133,17 @@ class QuizAPI(Resource):
 
         '''Query from quiz table'''
         Query_obj = qzdb.Quiz.query.filter_by(qzid = qzid).all()
-        if Query_obj == []:
+        if not Query_obj:
             response = handle_invalid_usage(InvalidUsage('Error: Quiz not found',status_code=404))
             return response
 
         '''Return response'''
-        resp_fields = ['qzid','title', 'difficulty_level', 'text','no_ques']
-        relnshp_flag = 0
-        quiz = utls.serialize_to_json(resp_fields, Query_obj, relnshp_flag)
+        response_fields = [{'name':'qzid', 'relnshp':False,'subfields':None},
+                           {'name':'title','relnshp':False,'subfields':None}, 
+                           {'name':'difficulty_level','relnshp':False,'subfields':None}, 
+                           {'name':'text','relnshp':False,'subfields':None}, 
+                           {'name':'no_ques','relnshp':False,'subfields':None}] 
+        quiz = utls.serialize_to_json(response_fields, Query_obj)
         print "Json response"
         print "=============\n"
         print '{\'quiz\':%s}\n' %(quiz)
@@ -169,9 +179,12 @@ class QuizAPI(Resource):
 
         '''Return response'''
         Query_obj = qzdb.Quiz.query.filter_by(qzid=qzid).all()
-        resp_fields = ['qzid','title', 'difficulty_level', 'text','no_ques']
-        relnshp_flag = 0
-        quiz = utls.serialize_to_json(resp_fields, Query_obj, relnshp_flag)
+        response_fields = [{'name':'qzid', 'relnshp':False,'subfields':None},
+                           {'name':'title','relnshp':False,'subfields':None}, 
+                           {'name':'difficulty_level','relnshp':False,'subfields':None}, 
+                           {'name':'text','relnshp':False,'subfields':None}, 
+                           {'name':'no_ques','relnshp':False,'subfields':None}] 
+        quiz = utls.serialize_to_json(response_fields, Query_obj)
         print "Json response"
         print "=============\n"
         print '{\'quiz\':%s\n}' %(quiz)
@@ -207,9 +220,10 @@ class QuestionsAPI(Resource):
                              help = "No ques text provided", location = 'json')
         self.reqparse.add_argument("ans_text", type = str, required = True,
                              help = "No ans given", location = 'json')
+        self.reqparse.add_argument("anschoices", type = list, required = True,
+                             help = "No choices given", location = 'json')
         super(QuestionsAPI, self).__init__()
 
-        relnshp_flag = 0
 
     #GET /api/questions/{qzid}/questions
     def get(self, qzid):
@@ -219,14 +233,20 @@ class QuestionsAPI(Resource):
 
         '''Query from quetsions table'''
         Query_obj = qzdb.Question.query.join(qzdb.Quiz).join(qzdb.Anschoice).filter(qzdb.Quiz.qzid == qzid).all()
-        if Query_obj == []:
+        if not Query_obj:
             response = handle_invalid_usage(InvalidUsage('Error: No question for quiz found',status_code=404))
             return response
 
         '''Return response'''
-        resp_fields = ['qid', 'qzid','ques_text', 'ans_text', 'anschoices'] 
-        relnshp_flag = resp_fields.index('anschoices')
-        questions = utls.serialize_to_json(resp_fields, Query_obj, relnshp_flag)
+        response_fields = [{'name':'qid',  'relnshp':False, 'subfields':None}, 
+                           {'name':'ques_text',  'relnshp':False, 'subfields':None}, 
+                           {'name':'ans_text','relnshp':False, 'subfields':None},  
+                           {'name':'qzid','relnshp':False, 'subfields':None},  
+                           {'name':'anschoices','relnshp':True, 
+                               'subfields':[{'name':'ans_choice','relnshp':False,'subfields':None},
+                                            {'name':'correct', 'relnshp':False, 'subfields':None}]} 
+                          ] 
+        questions = utls.serialize_to_json(response_fields, Query_obj)
         print "Json response"
         print "=============\n"
         print '{\'questions\':%s}\n' %(questions)
@@ -275,9 +295,14 @@ class QuestionsAPI(Resource):
         '''Return response'''
         location = "/api/quizzes/"+str(qzid)+"/questions/"+str(qn_obj.qid)
         Query_obj = qzdb.Question.query.join(qzdb.Anschoice).filter(qzdb.Question.qid == qn_obj.qid).all()
-        resp_fields = ['qid', 'qzid','ques_text', 'ans_text', 'anschoices'] 
-        relnshp_flag = resp_fields.index('anschoices')
-        question = utls.serialize_to_json(resp_fields, Query_obj, relnshp_flag)
+        response_fields = [{'name':'ques_text',  'relnshp':False, 'subfields':None}, 
+                           {'name':'ans_text','relnshp':False, 'subfields':None},  
+                           {'name':'qzid','relnshp':False, 'subfields':None},  
+                           {'name':'anschoices','relnshp':True, 
+                               'subfields':[{'name':'ans_choice','relnshp':False,'subfields':None},
+                                            {'name':'correct', 'relnshp':False, 'subfields':None}]} 
+                          ] 
+        question = utls.serialize_to_json(response_fields, Query_obj, 0)
 
         print "Json response"
         print "=============\n"
@@ -306,14 +331,20 @@ class QuestionAPI(Resource):
 
         '''Query Question table'''
         Query_obj = qzdb.Question.query.join(qzdb.Anschoice).filter(qzdb.Question.qid == qid,qzdb.Question.qzid == qzid).all()
-        if Query_obj == []:
+        if not Query_obj:
             response = handle_invalid_usage(InvalidUsage('Error: Question not found',status_code=404))
             return response
 
         '''Return response'''
-        resp_fields = ['qid', 'qzid','ques_text', 'ans_text', 'anschoices'] 
-        relnshp_flag = resp_fields.index('anschoices')
-        question = utls.serialize_to_json(resp_fields, Query_obj, relnshp_flag)
+        response_fields = [{'name':'qid',  'relnshp':False, 'subfields':None}, 
+                           {'name':'ques_text',  'relnshp':False, 'subfields':None}, 
+                           {'name':'ans_text','relnshp':False, 'subfields':None},  
+                           {'name':'qzid','relnshp':False, 'subfields':None},  
+                           {'name':'anschoices','relnshp':True, 
+                               'subfields':[{'name':'ans_choice','relnshp':False,'subfields':None},
+                                            {'name':'correct', 'relnshp':False, 'subfields':None}]} 
+                          ] 
+        question = utls.serialize_to_json(response_fields, Query_obj)
         print "Json response"
         print "=============\n"
         print '{\'question\':%s}\n' %(question)
@@ -330,7 +361,7 @@ class QuestionAPI(Resource):
 
         '''Check if question qid exists for qzid, raise error'''
         Query_obj = qzdb.Question.query.filter(qzdb.Question.qid == qid,qzdb.Question.qzid == qzid).all()
-        if Query_obj == []:
+        if not Query_obj:
             response = handle_invalid_usage(InvalidUsage('Error: Question to edit not found for quiz',status_code=400))
             return response
 
@@ -345,7 +376,7 @@ class QuestionAPI(Resource):
                     anschoices = request.json['anschoices']
 
         '''Update all table entries with input data'''
-        qzdb.Question.query.filter_by(qid = qid).update(cols)
+        qzdb.Question.query.filter_by(qid = qid).update(dict(ques_text=ques_text, ans_text=ans_text))
 
         '''Updating correspnoding relationship tables '''
         #Ans choices table 
@@ -361,9 +392,15 @@ class QuestionAPI(Resource):
 
         '''Return response'''
         Query_obj = qzdb.Question.query.join(qzdb.Anschoice).filter(qzdb.Question.qid == qid).all()
-        resp_fields = ['qid', 'qzid','ques_text', 'ans_text', 'anschoices'] 
-        relnshp_flag = resp_fields.index('anschoices')
-        question = utls.serialize_to_json(resp_fields, Query_obj, relnshp_flag)
+        response_fields = [{'name':'qid',  'relnshp':False, 'subfields':None}, 
+                           {'name':'ques_text',  'relnshp':False, 'subfields':None}, 
+                           {'name':'ans_text','relnshp':False, 'subfields':None},  
+                           {'name':'qzid','relnshp':False, 'subfields':None},  
+                           {'name':'anschoices','relnshp':True, 
+                               'subfields':[{'name':'ans_choice','relnshp':False,'subfields':None},
+                                            {'name':'correct', 'relnshp':False, 'subfields':None}]} 
+                          ] 
+        question = utls.serialize_to_json(response_fields, Query_obj)
         print "Json response"
         print "=============\n"
         print '{\'question\':%s\n}' %(question)
