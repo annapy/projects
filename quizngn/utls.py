@@ -1,15 +1,6 @@
 from collections import OrderedDict
 import qzdb
 
-'''
-Trying this Archana ...
-@api.representation('application/json')
-def json(data, code, headers):
-    resp = make_response(convert_data_to_xml(data), code)
-    resp.headers.extend(headers)
-    return resp
-'''
-
 def serialize_to_json(cols, query_result, frnkey_col):
     '''
     Serialize the query results into dict format so it can be
@@ -38,23 +29,6 @@ def serialize_to_json(cols, query_result, frnkey_col):
         import pdb; pdb.set_trace()
 
     return result
-
-'''
-def serialize(model):
-    SAMPLE CODE
-     """Transforms a model into a dictionary which can be dumped to JSON."""
-     # first we get the names of all the columns on your model
-     columns = [c.key for c in class_mapper(model.__class__).columns]
-     # then we return their values in a dict
-     return dict((c, getattr(model, c)) for c in columns)
-
-# we can then use this for your particular example
-    serialized_labels = [
-         serialize(label)
-         for label in session.query(LabelsData).filter(LabelsData.deleted == False)
-    ]
-    your_json = dump(serialized_labels)
-'''
 
 def display_tables():
     ''' Displays db table entries after processing request '''
