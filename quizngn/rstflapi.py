@@ -303,11 +303,11 @@ class QuestionsAPI(Resource):
         qzdb.Quiz.query.filter_by(qzid = qzid).update(dict(no_ques= (L.no_ques+1)))
         #Ans choices table 
         ansidL = []
-        for i in range(len(anschoices)):
+        for choice in range(len(anschoices)):
             ans_obj = qzdb.Anschoice(qzid,
                                      qn_obj.qid,
-                                     anschoices[i]["answer"], 
-                                     anschoices[i]["correct"]
+                                     anschoices[choice]["answer"], 
+                                     anschoices[choice]["correct"]
                                     )
             qzdb.db.session.add(ans_obj)
         qzdb.db.session.commit()
@@ -408,10 +408,10 @@ class QuestionAPI(Resource):
 
         #Updating correspnoding relationship tables
         #Ans choices table 
-        Q_obj = qzdb.Anschoice.query.filter_by(qid = qid)
+        query_obj = qzdb.Anschoice.query.filter_by(qid = qid)
         index = 0
-        for i in Q_obj:
-            ansid = Q_obj[index].ansid
+        for choice in query_obj:
+            ansid = query_obj[index].ansid
             ans_choice = anschoices[index]["answer"]
             correct    = anschoices[index]["correct"]
             qzdb.Anschoice.query.filter_by(ansid = ansid).update(dict(ans_choice = ans_choice, correct = correct))  
