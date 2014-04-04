@@ -12,6 +12,7 @@ maxquestion = 10000
 maxans = 50000
     
 class Quiz(db.Model):
+    """ Defines the columns and keys for Quiz table """
     qzid             = db.Column(db.Integer, primary_key=True)
     title            = db.Column(db.String(80), unique = True)
     difficulty_level = db.Column(db.String(80))
@@ -21,6 +22,7 @@ class Quiz(db.Model):
     questions = db.relationship("Question", backref = "quiz")
 
     def generate_qzid():
+        """Generator fn for unique quiz id"""
         for index in range(1, maxqz, 1):
             yield index
 
@@ -38,6 +40,7 @@ class Quiz(db.Model):
                     
 
 class Question(db.Model):
+    """ Defines the columns and keys for Question table """
     qid       = db.Column(db.Integer, primary_key=True)
     ques_text = db.Column(db.String(80), unique = True)
     ans_text  = db.Column(db.String(80))
@@ -46,6 +49,7 @@ class Question(db.Model):
     anschoices = db.relationship("Anschoice", backref = "question")
 
     def generate_quesid():
+        """Generator fn for unique ques id"""
         for index in range(1, maxquestion, 1):
             yield index
 
@@ -61,6 +65,7 @@ class Question(db.Model):
         return '%i     %i          %s   %s' % (self.qid, self.qzid, self.ques_text, self.ans_text)
 
 class Anschoice(db.Model):
+    """ Defines the columns and keys for Answer Choices table """
     ansid      = db.Column(db.Integer, primary_key = True)
     qzid       = db.Column(db.Integer, db.ForeignKey('quiz.qzid'))
     qid        = db.Column(db.Integer, db.ForeignKey('question.qid'))
@@ -68,6 +73,7 @@ class Anschoice(db.Model):
     correct    = db.Column(db.Boolean)
 
     def generate_ansid():
+        """Generator fn for unique ans id"""
         for index in range(1, maxans, 1):
             yield index
 
@@ -85,15 +91,23 @@ class Anschoice(db.Model):
 
 
 def db_init():
+    """ Initial config/population of the database tables """
+
+    #Using drop_all temporarily to prevent integrity error between
+    #subsequent runs. If db_init is not called this can be removed.
+    #this can also be called at the end of this fn
     db.drop_all()
+
     db.create_all()
 
+    #populate Quiz table
     qz1 = Quiz( "Python Basics  ", "Simple  ", "Explanation", 2)
     qz2 = Quiz( "Python Advanced", "Moderate", "No text    ")
     db.session.add(qz1)
     db.session.add(qz2)
     db.session.commit()
 
+    #populate Questions table
     ques1 = Question("What does 'def foo(): pass do", 
                       "A fn which does nothing",1)
     ques2 = Question("Is python an OOP l           ", 
@@ -102,6 +116,7 @@ def db_init():
     db.session.add(ques2)
     db.session.commit()
 
+    #populate Answer choices table
     ans1  = Anschoice(1, 1, "a. This function does nothing      ", True)
     ans2  = Anschoice(1, 1, "b. This function returns a fn pass ", False)
     ans3  = Anschoice(1, 1, "c. This function is not yet defined", False)
