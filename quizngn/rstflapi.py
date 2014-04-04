@@ -2,18 +2,20 @@ from flask import Flask, request
 from flask import json, jsonify
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.restful import Api, Resource, reqparse
+import qzdb 
+import utls 
 
 app = Flask(__name__)
 api = Api(app)
 
-import qzdb 
-import utls 
 
-class InvalidUsage(Exception):
+class InvalidUsageException(Exception):
+    """ Handles exceptions not caught by framework and sends response
+    """
     status_code = 404
 
     def __init__(self, message, status_code=None, payload=None):
-        Exception.__init__(self)
+        super(InvalidUsageException,self).__init__()
         self.message = message
         if status_code is not None:
             self.status_code = status_code
@@ -24,48 +26,53 @@ class InvalidUsage(Exception):
         rv['message'] = self.message
         return rv
 
-@app.errorhandler(InvalidUsage)
+@app.errorhandler(InvalidUsageException)
 def handle_invalid_usage(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
 
 class QuizzesAPI(Resource):
+    """ Class that defines methods for processing get/post requests 
+        for /api/quizzes endpoint 
+    """
 
     def __init__(self):
+        """ Uses RequestParser class of Flask restful to parse/validate
+            flask.request 
+        """
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument("title", type = str, required = True,
-                             help = "No title given for quiz", location = 'json')
-        self.reqparse.add_argument("difficulty_level", type = str, required = True,
-                             help = "No difficulty level given for quiz", location = 'json')
-        self.reqparse.add_argument("text", type = str, required = True,
-                             help = "Quiz text not provided", location = 'json')
+        self.reqparse.add_argument("title", type=str, required=True,
+                             help="No title given for quiz", location='json')
+        self.reqparse.add_argument("difficulty_level", type=str, required=True,
+                             help="No difficulty level given for quiz", location='json')
+        self.reqparse.add_argument("text", type=str, required=True,
+                             help="Quiz text not provided", location='json')
         super(QuizzesAPI, self).__init__()
 
 
     #GET /api/quizzes
     def get(self):
-        '''Get all quizzes'''
+        """Get all quizzes"""
         print "_______________________________________________"
         print "QuizzesAPI get fn: %s" %(request)
 
-        '''Query from quiz table'''
-        Query_obj = qzdb.Quiz.query.order_by(qzdb.Quiz.qzid).all()
-        import pdb; pdb.set_trace()
-        if not Query_obj:
-            response = handle_invalid_usage(InvalidUsage('Error: No quizzes found',status_code=404))
+        #Query from quiz table
+        query_obj = qzdb.Quiz.query.order_by(qzdb.Quiz.qzid).all()
+        if not query_obj:
+            response = handle_invalid_usage(InvalidUsageException('Error: No quizzes found', status_code=404))
             return response
 
-        '''Return response'''
+        #Return response
         response_fields = [{'name':'qzid', 'relnshp':False,'subfields':None},
                            {'name':'title','relnshp':False,'subfields':None}, 
                            {'name':'difficulty_level','relnshp':False,'subfields':None}, 
                            {'name':'text','relnshp':False,'subfields':None}, 
                            {'name':'no_ques','relnshp':False,'subfields':None}] 
-        quizzes = utls.serialize_to_json(response_fields, Query_obj)
+        quizzes = utls.serialize_to_json(response_fields, query_obj)
         print "Json response"
         print "=============\n"
-        print '{\'quizzes\':%s}\n' %(quizzes)
+        print "{\'quizzes\':%s}\n" %(quizzes)
         response = jsonify(quizzes=quizzes)
         response.status_code = 200
         utls.display_tables()
@@ -73,14 +80,14 @@ class QuizzesAPI(Resource):
 
     #POST /api/quizzes
     def post(self):
-        '''Add new quiz'''
+        """Add new quiz"""
         print "_________________________________________________"
         print "QuizzesAPI post fn: %s\nJson Request\n=============\n %s" %(request, request.json)
 
-        '''Get values from request'''
+        #Get values from request
         args = self.reqparse.parse_args()
         for key, value in args.iteritems():
-            if value != None:
+            if value is not None:
                 if (key == 'title'):
                     title = request.json['title']
                 if (key == 'difficulty_level'):
@@ -89,23 +96,23 @@ class QuizzesAPI(Resource):
                     text = request.json['text']
 
         #print args.help
-        '''Update tables'''
-        Quiz_obj = qzdb.Quiz(title, difficulty_level, text)
-        qzdb.db.session.add(Quiz_obj)
+        #Update tables
+        quiz_obj = qzdb.Quiz(title, difficulty_level, text)
+        qzdb.db.session.add(quiz_obj)
         qzdb.db.session.commit()
         
-        '''Return response'''
-        location = "/api/quizzes/"+str(Quiz_obj.qzid)
-        Query_obj = qzdb.Quiz.query.filter_by(qzid=Quiz_obj.qzid).all()
+        #Return response
+        location = "/api/quizzes/%s" % quiz_obj.qzid
+        query_obj = qzdb.Quiz.query.filter_by(qzid=quiz_obj.qzid).all()
         response_fields = [{'name':'qzid', 'relnshp':False,'subfields':None},
                            {'name':'title','relnshp':False,'subfields':None}, 
                            {'name':'difficulty_level','relnshp':False,'subfields':None}, 
                            {'name':'text','relnshp':False,'subfields':None}, 
                            {'name':'no_ques','relnshp':False,'subfields':None}] 
-        quiz = utls.serialize_to_json(response_fields, Query_obj)
+        quiz = utls.serialize_to_json(response_fields, query_obj)
         print "Json response"
         print "=============\n"
-        print '{\'quiz\':%s\n}' %(quiz)
+        print "{\'quiz\':%s\n}" %(quiz)
         response = jsonify(quiz=quiz)
         response.status_code = 201
         response.location = location
@@ -113,40 +120,46 @@ class QuizzesAPI(Resource):
         return response
 
 class QuizAPI(Resource):
+    """ Class that defines methods for processing get/patch/del requests 
+        for /api/quizzes/<qzid> endpoint 
+    """
 
     def __init__(self):
+        """ Uses RequestParser class of Flask restful to parse/validate
+            flask.request 
+        """
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument("title", type = str, 
-                             help = "*********No title given********", location = 'json')
-        self.reqparse.add_argument("difficulty_level", type = str,
-                             help = "No difficulty level set", location = 'json')
-        self.reqparse.add_argument("text", type = str, 
-                             help = "text", location = 'json')
+        self.reqparse.add_argument("title", type=str, 
+                             help="*********No title given********", location='json')
+        self.reqparse.add_argument("difficulty_level", type=str,
+                             help="No difficulty level set", location='json')
+        self.reqparse.add_argument("text", type=str, 
+                             help="text", location='json')
         super(QuizAPI, self).__init__()
 
 
     #GET  /api/quizzes/{qzid}
     def get(self, qzid):
-        '''Get quiz details'''
+        """Get quiz details"""
         print "_________________________________________________"
         print "QuizAPI get fn: %s" %(request)
 
-        '''Query from quiz table'''
-        Query_obj = qzdb.Quiz.query.filter_by(qzid = qzid).all()
-        if not Query_obj:
-            response = handle_invalid_usage(InvalidUsage('Error: Quiz not found',status_code=404))
+        #Query from quiz table
+        query_obj = qzdb.Quiz.query.filter_by(qzid = qzid).all()
+        if not query_obj:
+            response = handle_invalid_usage(InvalidUsageException('Error: Quiz not found', status_code=404))
             return response
 
-        '''Return response'''
+        #Return response
         response_fields = [{'name':'qzid', 'relnshp':False,'subfields':None},
                            {'name':'title','relnshp':False,'subfields':None}, 
                            {'name':'difficulty_level','relnshp':False,'subfields':None}, 
                            {'name':'text','relnshp':False,'subfields':None}, 
                            {'name':'no_ques','relnshp':False,'subfields':None}] 
-        quiz = utls.serialize_to_json(response_fields, Query_obj)
+        quiz = utls.serialize_to_json(response_fields, query_obj)
         print "Json response"
         print "=============\n"
-        print '{\'quiz\':%s}\n' %(quiz)
+        print "{\'quiz\':%s}\n" %(quiz)
         response = jsonify(quiz=quiz)
         utls.display_tables()
         response.status_code = 200
@@ -155,39 +168,39 @@ class QuizAPI(Resource):
 
     #PATCH /api/quizzes/{qzid}
     def patch(self, qzid):
-        '''Edit quiz details'''
+        """Edit quiz details"""
         print "_________________________________________________"
         print "QuizAPI patch fn: %s \nJson Request\n=============\n %s" %(request, request.json) 
 
-        '''Get values from req'''
+        #Get values from req
         args = self.reqparse.parse_args()
         cols = {}
         no_data = True
         for key, value in args.iteritems():
-            if value != None:
+            if value is not None:
                 no_data = False
                 cols[key] = request.json[key]
 
-        '''If no input in patch request, return 400'''
+        #If no input in patch request, return 400
         if no_data:
-            response = handle_invalid_usage(InvalidUsage('Error: No input data provided in Patch req',status_code=400))
+            response = handle_invalid_usage(InvalidUsageException('Error: No input data provided in Patch req', status_code=400))
             return response
 
-        '''Update tables'''
+        #Update tables
         qzdb.Quiz.query.filter_by(qzid = qzid).update(cols)
         qzdb.db.session.commit()
 
-        '''Return response'''
-        Query_obj = qzdb.Quiz.query.filter_by(qzid=qzid).all()
+        #Return response
+        query_obj = qzdb.Quiz.query.filter_by(qzid=qzid).all()
         response_fields = [{'name':'qzid', 'relnshp':False,'subfields':None},
                            {'name':'title','relnshp':False,'subfields':None}, 
                            {'name':'difficulty_level','relnshp':False,'subfields':None}, 
                            {'name':'text','relnshp':False,'subfields':None}, 
                            {'name':'no_ques','relnshp':False,'subfields':None}] 
-        quiz = utls.serialize_to_json(response_fields, Query_obj)
+        quiz = utls.serialize_to_json(response_fields, query_obj)
         print "Json response"
         print "=============\n"
-        print '{\'quiz\':%s\n}' %(quiz)
+        print "{\'quiz\':%s\n}" %(quiz)
         response = jsonify(quiz=quiz)
         response.status_code = 200
         utls.display_tables()
@@ -195,49 +208,57 @@ class QuizAPI(Resource):
 
     #DELETE  /api/quizzes/{qzid}
     def delete(self, qzid):
-        '''Delete quiz'''
+        """Delete quiz"""
         print "_________________________________________________"
         print "QuizAPI delete fn: %s" %(request)
-        '''delete all questions table entries for the quiz'''
+
+        #delete all questions table entries for the quiz
         qzdb.Question.query.join(qzdb.Quiz).filter(qzdb.Question.qzid == qzid).delete()
         
-        '''delete all Ans choices table entries for quiz'''
+        #delete all Ans choices table entries for quiz
         qzdb.Anschoice.query.join(qzdb.Quiz).filter(qzdb.Anschoice.qzid == qzid).delete()
 
-        '''delete quiz'''
+        #delete quiz
         qzdb.Quiz.query.filter(qzdb.Quiz.qzid == qzid).delete()
         qzdb.db.session.commit()
         
-        '''Return response'''
+        #Return response
         utls.display_tables()
         return 204
 
 class QuestionsAPI(Resource):
+    """ Class that defines methods for processing get/post requests 
+        for /api/quizzes/<qzid>/questions endpoint 
+    """
 
     def __init__(self):
+        """ Uses RequestParser class of Flask restful to parse/validate
+            flask.request 
+        """
+
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument("ques_text", type = str, required = True,
-                             help = "No ques text provided", location = 'json')
-        self.reqparse.add_argument("ans_text", type = str, required = True,
-                             help = "No ans given", location = 'json')
-        self.reqparse.add_argument("anschoices", type = list, required = True,
-                             help = "No choices given", location = 'json')
+        self.reqparse.add_argument("ques_text", type=str, required=True,
+                             help="No ques text provided", location='json')
+        self.reqparse.add_argument("ans_text", type=str, required=True,
+                             help="No ans given", location='json')
+        self.reqparse.add_argument("anschoices", type=list, required=True,
+                             help="No choices given", location='json')
         super(QuestionsAPI, self).__init__()
 
 
     #GET /api/questions/{qzid}/questions
     def get(self, qzid):
-        '''Get all questions for quiz'''
+        """Get all questions for quiz"""
         print "_________________________________________________"
         print "QuestionisAPI get fn: %s" %(request)
 
-        '''Query from quetsions table'''
-        Query_obj = qzdb.Question.query.join(qzdb.Quiz).join(qzdb.Anschoice).filter(qzdb.Quiz.qzid == qzid).all()
-        if not Query_obj:
-            response = handle_invalid_usage(InvalidUsage('Error: No question for quiz found',status_code=404))
+        #Query from questions table
+        query_obj = qzdb.Question.query.join(qzdb.Quiz).join(qzdb.Anschoice).filter(qzdb.Quiz.qzid == qzid).all()
+        if not query_obj:
+            response = handle_invalid_usage(InvalidUsageException('Error: No question for quiz found', status_code=404))
             return response
 
-        '''Return response'''
+        #Return response
         response_fields = [{'name':'qid',  'relnshp':False, 'subfields':None}, 
                            {'name':'ques_text',  'relnshp':False, 'subfields':None}, 
                            {'name':'ans_text','relnshp':False, 'subfields':None},  
@@ -246,10 +267,10 @@ class QuestionsAPI(Resource):
                                'subfields':[{'name':'ans_choice','relnshp':False,'subfields':None},
                                             {'name':'correct', 'relnshp':False, 'subfields':None}]} 
                           ] 
-        questions = utls.serialize_to_json(response_fields, Query_obj)
+        questions = utls.serialize_to_json(response_fields, query_obj)
         print "Json response"
         print "=============\n"
-        print '{\'questions\':%s}\n' %(questions)
+        print "{\'questions\':%s}\n" %(questions)
         response = jsonify(questions = questions)
         response.status_code = 200
         utls.display_tables()
@@ -257,14 +278,14 @@ class QuestionsAPI(Resource):
 
     #POST /api/quizzes/{qzid}/questions
     def post(self, qzid):
-        '''Add question to quiz'''
+        """Add question to quiz"""
         print "_________________________________________________"
         print "QuestionsAPI post fn: %s \nJson Request\n=============\n %s" %(request, request.json)
 
-        '''Get data from req'''
+        #Get data from req
         args = self.reqparse.parse_args()
         for key, value in args.iteritems():
-            if value != None:
+            if value is not None:
                 if (key == 'ques_text'):
                     ques_text = request.json['ques_text']
                 if (key == 'ans_text'):
@@ -272,15 +293,14 @@ class QuestionsAPI(Resource):
                 if (key == 'anschoices'):
                     anschoices = request.json['anschoices']
 
-        '''Post new data to table'''
+        #Post new data to table
         qn_obj = qzdb.Question(ques_text, ans_text, qzid)
         qzdb.db.session.add(qn_obj)
 
-        '''Update correspnoding relationship tables '''
+        #Update correspnoding relationship tables 
         #Quiz table
         L = qzdb.Quiz.query.filter_by(qzid = qzid).first()
         qzdb.Quiz.query.filter_by(qzid = qzid).update(dict(no_ques= (L.no_ques+1)))
-
         #Ans choices table 
         ansidL = []
         for i in range(len(anschoices)):
@@ -292,9 +312,10 @@ class QuestionsAPI(Resource):
             qzdb.db.session.add(ans_obj)
         qzdb.db.session.commit()
 
-        '''Return response'''
-        location = "/api/quizzes/"+str(qzid)+"/questions/"+str(qn_obj.qid)
-        Query_obj = qzdb.Question.query.join(qzdb.Anschoice).filter(qzdb.Question.qid == qn_obj.qid).all()
+        #Return response
+        #location = "/api/quizzes/"+str(qzid)+"/questions/"+str(qn_obj.qid)
+        location = "/api/quizzes/%s/questions/%s" % (qzid, qn_obj.qid)
+        query_obj = qzdb.Question.query.join(qzdb.Anschoice).filter(qzdb.Question.qid == qn_obj.qid).all()
         response_fields = [{'name':'ques_text',  'relnshp':False, 'subfields':None}, 
                            {'name':'ans_text','relnshp':False, 'subfields':None},  
                            {'name':'qzid','relnshp':False, 'subfields':None},  
@@ -302,11 +323,11 @@ class QuestionsAPI(Resource):
                                'subfields':[{'name':'ans_choice','relnshp':False,'subfields':None},
                                             {'name':'correct', 'relnshp':False, 'subfields':None}]} 
                           ] 
-        question = utls.serialize_to_json(response_fields, Query_obj, 0)
+        question = utls.serialize_to_json(response_fields, query_obj, 0)
 
         print "Json response"
         print "=============\n"
-        print '{\'question\':%s}\n' %(question)
+        print "{\'question\':%s}\n" %(question)
         response = jsonify(question = question)
         response.location = location
         response.status_code = 201
@@ -314,28 +335,35 @@ class QuestionsAPI(Resource):
         return response
 
 class QuestionAPI(Resource):
+    """ Class that defines methods for processing get/patch/del requests 
+        for /api/quizzes/<qzid>/questions/<qid> endpoint 
+    """
 
     def __init__(self):
+        """ Uses RequestParser class of Flask restful to parse/validate
+            flask.request 
+        """
+
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('ques_text', type = str, required = True,
-                             help = 'No title given', location = 'json')
-        self.reqparse.add_argument('ans_text', type = str, default = "",
-                             help = 'No ans provided', location = 'json')
+        self.reqparse.add_argument('ques_text', type=str, required=True,
+                             help='No title given', location='json')
+        self.reqparse.add_argument('ans_text', type=str, default="",
+                             help='No ans provided', location='json')
         super(QuestionAPI, self).__init__()
 
     #GET  /api/quizzes/{qzid}/questions/{qid}
     def get(self, qzid, qid):
-        '''Get question qid for quiz'''
+        """Get question qid for quiz"""
         print "_________________________________________________"
         print "QuestionAPI get fn: %s" %(request)
 
-        '''Query Question table'''
-        Query_obj = qzdb.Question.query.join(qzdb.Anschoice).filter(qzdb.Question.qid == qid,qzdb.Question.qzid == qzid).all()
-        if not Query_obj:
-            response = handle_invalid_usage(InvalidUsage('Error: Question not found',status_code=404))
+        #Query Question table
+        query_obj = qzdb.Question.query.join(qzdb.Anschoice).filter(qzdb.Question.qid == qid,qzdb.Question.qzid == qzid).all()
+        if not query_obj:
+            response = handle_invalid_usage(InvalidUsageException('Error: Question not found', status_code=404))
             return response
 
-        '''Return response'''
+        #Return response
         response_fields = [{'name':'qid',  'relnshp':False, 'subfields':None}, 
                            {'name':'ques_text',  'relnshp':False, 'subfields':None}, 
                            {'name':'ans_text','relnshp':False, 'subfields':None},  
@@ -344,10 +372,10 @@ class QuestionAPI(Resource):
                                'subfields':[{'name':'ans_choice','relnshp':False,'subfields':None},
                                             {'name':'correct', 'relnshp':False, 'subfields':None}]} 
                           ] 
-        question = utls.serialize_to_json(response_fields, Query_obj)
+        question = utls.serialize_to_json(response_fields, query_obj)
         print "Json response"
         print "=============\n"
-        print '{\'question\':%s}\n' %(question)
+        print "{\'question\':%s}\n" %(question)
         response = jsonify(question = question)
         response.status_code = 200
         utls.display_tables()
@@ -355,19 +383,19 @@ class QuestionAPI(Resource):
 
     #PATCH /api/quizzes/{qzid}/questions/{qid}
     def patch(self, qzid, qid):
-        '''Add question to quiz'''
+        """Add question to quiz"""
         print "_________________________________________________"
         print "QuestionAPI patch fn: %s \nJson Request\n=============\n %s" %(request, request.json)
 
-        '''Check if question qid exists for qzid, raise error'''
-        Query_obj = qzdb.Question.query.filter(qzdb.Question.qid == qid,qzdb.Question.qzid == qzid).all()
-        if not Query_obj:
-            response = handle_invalid_usage(InvalidUsage('Error: Question to edit not found for quiz',status_code=400))
+        #Check if question qid exists for qzid, raise error
+        query_obj = qzdb.Question.query.filter(qzdb.Question.qid == qid,qzdb.Question.qzid == qzid).all()
+        if not query_obj:
+            response = handle_invalid_usage(InvalidUsageException('Error: Question to edit not found for quiz', status_code=400))
             return response
 
         args = self.reqparse.parse_args()
         for key, value in args.iteritems():
-            if value != None:
+            if value is not None:
                 if (key == 'ques_text'):
                     ques_text = request.json['ques_text']
                 if (key == 'ans_text'):
@@ -375,10 +403,10 @@ class QuestionAPI(Resource):
                 if (key == 'anschoices'):
                     anschoices = request.json['anschoices']
 
-        '''Update all table entries with input data'''
+        #Update all table entries with input data
         qzdb.Question.query.filter_by(qid = qid).update(dict(ques_text=ques_text, ans_text=ans_text))
 
-        '''Updating correspnoding relationship tables '''
+        #Updating correspnoding relationship tables
         #Ans choices table 
         Q_obj = qzdb.Anschoice.query.filter_by(qid = qid)
         index = 0
@@ -390,8 +418,8 @@ class QuestionAPI(Resource):
             index += 1
         qzdb.db.session.commit()
 
-        '''Return response'''
-        Query_obj = qzdb.Question.query.join(qzdb.Anschoice).filter(qzdb.Question.qid == qid).all()
+        #Return response
+        query_obj = qzdb.Question.query.join(qzdb.Anschoice).filter(qzdb.Question.qid == qid).all()
         response_fields = [{'name':'qid',  'relnshp':False, 'subfields':None}, 
                            {'name':'ques_text',  'relnshp':False, 'subfields':None}, 
                            {'name':'ans_text','relnshp':False, 'subfields':None},  
@@ -400,10 +428,10 @@ class QuestionAPI(Resource):
                                'subfields':[{'name':'ans_choice','relnshp':False,'subfields':None},
                                             {'name':'correct', 'relnshp':False, 'subfields':None}]} 
                           ] 
-        question = utls.serialize_to_json(response_fields, Query_obj)
+        question = utls.serialize_to_json(response_fields, query_obj)
         print "Json response"
         print "=============\n"
-        print '{\'question\':%s\n}' %(question)
+        print "{\'question\':%s\n}" %(question)
         response = jsonify(question=question)
         response.status_code = 200
         utls.display_tables()
@@ -411,22 +439,22 @@ class QuestionAPI(Resource):
 
     #DELETE  /api/quizzes/{qzid}/questions/{qid}
     def delete(self, qzid, qid):
-        '''Delete question'''
+        """Delete question"""
         print "_________________________________________________"
         print "QuestionAPI del fn: %s" %(request.url)
 
-        '''Updating no_ques col in quiz table'''
+        #Updating no_ques col in quiz table
         L = qzdb.Quiz.query.filter_by(qzid = qzid).first()
         qzdb.Quiz.query.filter_by(qzid = qzid).update(dict(no_ques= (L.no_ques-1)))
 
-        '''deleting Ans choices table entries for qid'''
+        #deleting Ans choices table entries for qid
         qzdb.Anschoice.query.filter(qzdb.Anschoice.qid == qid).delete()
 
-        '''Finally deleting entries from Question table'''
+        #Finally deleting entries from Question table
         qzdb.Question.query.filter_by(qid = qid).delete()
         qzdb.db.session.commit()
 
-        '''Return response'''
+        #Return response
         response = jsonify(qid=qid)
         response.status_code = 204
         utls.display_tables()
