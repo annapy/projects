@@ -2,16 +2,12 @@ import json
 import requests
 
 url = 'http://192.168.33.10:5001/api/quizzes'
-#headers = {'Content-Type': 'application/json'}
-headers = {'Content-Type': 'application/json', 'Authorization':'Basic'
-           }
+headers = {'Content-Type': 'application/json'}
 
 # Make a POST request to create a quiz in the database.
-#With Auth
-#data = dict(username='admin', password='ret',title= 'Python Basics 2', difficulty_level='Moderate', text='Explanation 2')
-
+data = dict(title= 'Python Basics 2', difficulty_level='Moderate', text='Explanation 2')
 #data = dict(title= 'Python Basics updated', difficulty_level = 'Easy updated')
-#response = requests.post(url, data=json.dumps(data), headers=headers)
+response = requests.post(url, data=json.dumps(data), headers=headers)
 '''
 # Make a POST request to create a question in the database.
 #data = dict(ques_text = "Is this new?", ans_text="This is it", anschoices=[{"answer":"a. New answer CHANGE", "correct":True}, {"answer":"b. Second choice mod", "correct":False}, {"answer":"c. Third modified mod", "correct":True}])                                
@@ -20,9 +16,7 @@ response = requests.post(url, data=json.dumps(data), headers=headers)
 '''
 
 # Make a GET request for the entire collection.
-response = requests.get(url, headers=headers)
-
-#import pdb; pdb.set_trace()
+#response = requests.get(url, headers=headers)
 #response = requests.delete(url, headers=headers)
 '''
 # Make a DEL request for the entire collection.

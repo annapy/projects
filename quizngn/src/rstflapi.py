@@ -2,14 +2,11 @@ from flask import Flask, request
 from flask import json, jsonify
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.restful import Api, Resource, reqparse
-#from flask.ext.httpbasicbasicAuth import HTTPBasicAuth
 import qzdb 
 import utls 
-import basicAuth 
 
 app = Flask(__name__)
 api = Api(app)
-#basicAuth = HTTPBasicAuth()
 
 
 class InvalidUsageException(Exception):
@@ -59,6 +56,7 @@ class QuizzesAPI(Resource):
         """Get all quizzes"""
         print "_______________________________________________"
         print "QuizzesAPI get fn: %s" %(request)
+
         #Query from quiz table
         query_obj = qzdb.Quiz.query.order_by(qzdb.Quiz.qzid).all()
         if not query_obj:
@@ -81,7 +79,6 @@ class QuizzesAPI(Resource):
         return response
 
     #POST /api/quizzes
-    @basicAuth.login_required
     def post(self):
         """Add new quiz"""
         print "_________________________________________________"
@@ -170,7 +167,6 @@ class QuizAPI(Resource):
 
 
     #PATCH /api/quizzes/{qzid}
-    @basicAuth.login_required
     def patch(self, qzid):
         """Edit quiz details"""
         print "_________________________________________________"
@@ -211,11 +207,11 @@ class QuizAPI(Resource):
         return response
 
     #DELETE  /api/quizzes/{qzid}
-    @basicAuth.login_required
     def delete(self, qzid):
         """Delete quiz"""
         print "_________________________________________________"
         print "QuizAPI delete fn: %s" %(request)
+
         #delete all questions table entries for the quiz
         qzdb.Question.query.join(qzdb.Quiz).filter(qzdb.Question.qzid == qzid).delete()
         
@@ -281,7 +277,6 @@ class QuestionsAPI(Resource):
         return response
 
     #POST /api/quizzes/{qzid}/questions
-    @basicAuth.login_required
     def post(self, qzid):
         """Add question to quiz"""
         print "_________________________________________________"
@@ -308,11 +303,11 @@ class QuestionsAPI(Resource):
         qzdb.Quiz.query.filter_by(qzid = qzid).update(dict(no_ques= (L.no_ques+1)))
         #Ans choices table 
         ansidL = []
-        for choice in range(len(anschoices)):
+        for i in range(len(anschoices)):
             ans_obj = qzdb.Anschoice(qzid,
                                      qn_obj.qid,
-                                     anschoices[choice]["answer"], 
-                                     anschoices[choice]["correct"]
+                                     anschoices[i]["answer"], 
+                                     anschoices[i]["correct"]
                                     )
             qzdb.db.session.add(ans_obj)
         qzdb.db.session.commit()
@@ -387,7 +382,6 @@ class QuestionAPI(Resource):
         return response
 
     #PATCH /api/quizzes/{qzid}/questions/{qid}
-    @basicAuth.login_required
     def patch(self, qzid, qid):
         """Add question to quiz"""
         print "_________________________________________________"
@@ -414,10 +408,10 @@ class QuestionAPI(Resource):
 
         #Updating correspnoding relationship tables
         #Ans choices table 
-        query_obj = qzdb.Anschoice.query.filter_by(qid = qid)
+        Q_obj = qzdb.Anschoice.query.filter_by(qid = qid)
         index = 0
-        for choice in query_obj:
-            ansid = query_obj[index].ansid
+        for i in Q_obj:
+            ansid = Q_obj[index].ansid
             ans_choice = anschoices[index]["answer"]
             correct    = anschoices[index]["correct"]
             qzdb.Anschoice.query.filter_by(ansid = ansid).update(dict(ans_choice = ans_choice, correct = correct))  
@@ -444,7 +438,6 @@ class QuestionAPI(Resource):
         return response
 
     #DELETE  /api/quizzes/{qzid}/questions/{qid}
-    @basicAuth.login_required
     def delete(self, qzid, qid):
         """Delete question"""
         print "_________________________________________________"
