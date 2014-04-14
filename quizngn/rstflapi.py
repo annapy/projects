@@ -6,9 +6,11 @@ from flask.ext.restful import Api, Resource, reqparse
 import qzdb 
 import utls 
 import basicAuth 
+import hashtbl 
 
 app = Flask(__name__)
 api = Api(app)
+ht = hashtbl.hshtbl()
 #basicAuth = HTTPBasicAuth()
 
 
@@ -473,7 +475,11 @@ api.add_resource(QuestionsAPI, '/api/quizzes/<int:qzid>/questions')
 api.add_resource(QuestionAPI, '/api/quizzes/<int:qzid>/questions/<int:qid>')
 
 if __name__ == '__main__':
+
+    #Initial config for db, this can be disabled
     qzdb.db_init()
+    ht.insert_user("Admin","Secret")
+
     app.debug = True
     app.run('192.168.33.10', 5001)
 
