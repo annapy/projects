@@ -3,7 +3,7 @@
 #        Archana Bahuguna       Apr 12 2014     Hash table
 #
 # This hash table may not work correctly for boundary values like
-# 0 or 100 index of the hashtable- hasnt been tested thoroughly
+# 0 or 100 index of the hashtable - hasnt been tested thoroughly
 # Also may not always generate a unique key
 #
 # ****************************************************************#
@@ -115,6 +115,9 @@ class hshtbl(object):
             print "\nError: User %s cannot be authenticated-Username  not found"% username
         return False
 
+ht = hshtbl()
+
+"""
 if __name__ == '__main__':
     a = hshtbl()
     print"\n----------------Insert user:Arch---------------------------\n"
@@ -138,4 +141,4 @@ if __name__ == '__main__':
     print"\n---------------User not found------------------------------\n"
     a.verify_password("Beyonce","lotus")
     print a.hashtbl
-
+"""

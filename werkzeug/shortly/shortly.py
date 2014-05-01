@@ -27,7 +27,6 @@ class Shortly(object):
     def __init__(self, config):
         self.redis = redis.Redis(config['redis_host'], config['redis_port'])
 
-        #import pdb; pdb.set_trace()
 
         template_path = os.path.join(os.path.dirname(__file__), 'templates')
         self.jinja_env = Environment(loader=FileSystemLoader(template_path),
@@ -39,7 +38,6 @@ class Shortly(object):
                           ])
 
     def render_template(self, template_name, **context):
-        #import pdb; pdb.set_trace()
         t = self.jinja_env.get_template(template_name)
         return Response(t.render(context), mimetype='text/html')
 
@@ -48,33 +46,24 @@ class Shortly(object):
         #i)GET Control comes here when we type the ip:port on brwsr
         #ii)POST Control comes here when we type a url in the box
         error = None
-        url = ''
+        url = request.url
+        if not is_valid_url(url):
+            print "is not valid url"
+            error = 'Please enter a valid URL'
+        if request.method == 'GET':
+            # i) GET
+            #import pdb; pdb.set_trace()
+            url = '/archana/test'
         if request.method == 'POST':
             # ii) POST
-            url = request.form['url']
-        if not is_valid_url(url):
-            # i) GET
-            error = 'Please enter a valid URL'
-        else:
-            # ii) POST
             #import pdb; pdb.set_trace()
+            url = request.form['url']
             short_id = self.insert_url(url)
             return redirect('/%s+' % short_id)
         return self.render_template('new_url.html', error=error, url=url)
 
     def on_follow_short_link(self, request, short_id):
 
-        #Archana: changed code temporarily to test get
-        #Archana: when I explicitly put xyz as arg and set this key 
-        #in redis-cli to point to http://www.google.com it works
-        #redis-cli>> set xyz http://www.google.com 
-        #link_target = self.redis.get('xyz')
-
-        #for browser input 192.168.33.10:5003/foo ...
-        #if you populate at redis-cli> set url-target:foo http://www.cnn.com
-        # it finds the link for cnn and redirects
-
-        #import pdb; pdb.set_trace()
         link_target = self.redis.get('url-target:' + short_id)
         if link_target is None:
             raise NotFound()
@@ -91,7 +80,6 @@ class Shortly(object):
         # link ... details for that are populated here where it gives
         # back all information in another 200 OK with stuff like 
 
-        #import pdb; pdb.set_trace()
         link_target = self.redis.get('url-target:'+short_id)
         if link_target is None:
             raise Notfound()
@@ -114,7 +102,6 @@ class Shortly(object):
 
 
     def dispatch_request(self, request):
-        #import pdb; pdb.set_trace()
         adapter = self.url_map.bind_to_environ(request.environ)
         try:
             endpoint, values = adapter.match()
@@ -131,7 +118,6 @@ class Shortly(object):
     def __call__(self, environ, start_response):
         return self.wsgi_app(environ, start_response)
 
-
 def create_app(redis_host='localhost', redis_port=6379, with_static=True):
     app = Shortly({
         'redis_host':       redis_host,
@@ -141,11 +127,13 @@ def create_app(redis_host='localhost', redis_port=6379, with_static=True):
     if with_static:
         app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
             '/static':  os.path.join(os.path.dirname(__file__), 'static')
-        })# This is where it gets in wsgi.py module in werkzeug
+        })
     return app
 
 if __name__ == '__main__':
     from werkzeug.serving import run_simple
+    #It would be simpler to just write app=Shortly((redishost,redisport)
+    # here but we want to modify the app.wsgi() function with the 
+    # SharedDataMiddleare, so we write a separate fn create_app etc... 
     app = create_app()
-    #import pdb; pdb.set_trace()
-    run_simple('192.168.33.10', 5003, app, use_debugger=True, use_reloader=True)
+    run_simple('192.168.33.10', 5004, app, use_debugger=True, use_reloader=True)

@@ -1,5 +1,5 @@
 import os
-import sqlite3
+import redis
 import urlparse
 from werkzeug.wrappers import Request, Response
 from werkzeug.routing import Map, Rule
@@ -7,6 +7,7 @@ from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.wsgi import SharedDataMiddleware
 from werkzeug.utils import redirect
 from jinja2 import Environment, FileSystemLoader
+
 
 def is_valid_url(url):
     parts = urlparse.urlparse(url)
@@ -22,59 +23,74 @@ def base36_encode(number):
         base36.append('0123456789abcdefghijklmnopqrstuvwxyz'[i])
     return ''.join(reversed(base36))
 
-class Shortly(object):
+class GroceryApp(object):
 
-    def __init__(self, config):
-        self.redis = redis.Redis(config['redis_host'], config['redis_port'])
-
-        #import pdb; pdb.set_trace()
-
+    def __init__(self):
+#        self.db_hndl = dbcur
+        self.order = False
         template_path = os.path.join(os.path.dirname(__file__), 'templates')
         self.jinja_env = Environment(loader=FileSystemLoader(template_path),
                                  autoescape=True)
         self.url_map = Map([
-                            Rule('/', endpoint='new_url'),
+                            Rule('/', endpoint='new_cust'),
                             Rule('/<short_id>', endpoint='follow_short_link'),
                             Rule('/<short_id>+', endpoint='short_link_details')
                           ])
 
     def render_template(self, template_name, **context):
-        #import pdb; pdb.set_trace()
         t = self.jinja_env.get_template(template_name)
+        #import pdb; pdb.set_trace()
         return Response(t.render(context), mimetype='text/html')
 
-    def on_new_url(self, request):
-        # Archana: 
-        #i)GET Control comes here when we type the ip:port on brwsr
-        #ii)POST Control comes here when we type a url in the box
+    def on_new_cust(self, request):
         error = None
-        url = ''
+        #import pdb; pdb.set_trace()
+        url = request.url
+        print request.headers
+        if request.method == 'GET':
+            # i) GET
+            gl = ["Mangoes", "Onions", "Potatoes"]
+            print "From GET method"
+            template_filename='list_db.html'
         if request.method == 'POST':
             # ii) POST
-            url = request.form['url']
-        if not is_valid_url(url):
-            # i) GET
-            error = 'Please enter a valid URL'
-        else:
-            # ii) POST
-            #import pdb; pdb.set_trace()
-            short_id = self.insert_url(url)
-            return redirect('/%s+' % short_id)
-        return self.render_template('new_url.html', error=error, url=url)
+            #item_list is specified as input_name for checbox control in 
+            #the rendering template file. It is the name of the input received
+
+            if self.order == False:
+                #Customer has filled an order cart
+                #Werkzeug allows you to get the multidict values from this fn
+                gl=request.form.getlist('item_list') 
+
+                #get session id from cookie in req header
+                Cust_info = request.headers.get('Cookie')
+                key,eqls,session_id=Cust_info.rpartition('=')
+
+                #get price order from database
+                qty = 1
+                price = 3
+                total = price*(len(gl))
+
+                print "From POST method the items received:\n"
+                for item in gl:
+                    print item
+                print "\n"
+                template_filename='list_order.html'
+                self.order = True
+                return self.render_template(template_filename, 
+                                  grocery_list=gl, qty=qty, price=price, total=total)
+            else:
+                #Customer has confirmed order or canceled
+                gl=request.form.getlist('item_list') 
+                if "Place Order" in gl:
+                    template_filename='order_complete.html'
+                else:
+                    template_filename='order_cancel.html'
+        return self.render_template(template_filename, grocery_list=gl)
+# Expecting keyword args to form dict
 
     def on_follow_short_link(self, request, short_id):
 
-        #Archana: changed code temporarily to test get
-        #Archana: when I explicitly put xyz as arg and set this key 
-        #in redis-cli to point to http://www.google.com it works
-        #redis-cli>> set xyz http://www.google.com 
-        #link_target = self.redis.get('xyz')
-
-        #for browser input 192.168.33.10:5003/foo ...
-        #if you populate at redis-cli> set url-target:foo http://www.cnn.com
-        # it finds the link for cnn and redirects
-
-        #import pdb; pdb.set_trace()
         link_target = self.redis.get('url-target:' + short_id)
         if link_target is None:
             raise NotFound()
@@ -91,7 +107,6 @@ class Shortly(object):
         # link ... details for that are populated here where it gives
         # back all information in another 200 OK with stuff like 
 
-        #import pdb; pdb.set_trace()
         link_target = self.redis.get('url-target:'+short_id)
         if link_target is None:
             raise Notfound()
@@ -114,7 +129,6 @@ class Shortly(object):
 
 
     def dispatch_request(self, request):
-        #import pdb; pdb.set_trace()
         adapter = self.url_map.bind_to_environ(request.environ)
         try:
             endpoint, values = adapter.match()
@@ -126,6 +140,11 @@ class Shortly(object):
         import pdb; pdb.set_trace()
         request = Request(environ)
         response = self.dispatch_request(request)
+
+        #generate session id for each customer
+        session_id='123456'
+        response.set_cookie('session_id',session_id, expires='Tue')
+        response.set_cookie('newid','abche78',expires='Thu')
         return response(environ, start_response)
 
     def __call__(self, environ, start_response):
@@ -133,19 +152,17 @@ class Shortly(object):
 
 
 def create_app(redis_host='localhost', redis_port=6379, with_static=True):
-    app = Shortly({
-        'redis_host':       redis_host,
-        'redis_port':       redis_port
-    })#Shortly class init fn called here 
+    #import pdb; pdb.set_trace()
+    app = GroceryApp()
 
     if with_static:
         app.wsgi_app = SharedDataMiddleware(app.wsgi_app, {
             '/static':  os.path.join(os.path.dirname(__file__), 'static')
-        })# This is where it gets in wsgi.py module in werkzeug
+        })
     return app
 
 if __name__ == '__main__':
     from werkzeug.serving import run_simple
     app = create_app()
     #import pdb; pdb.set_trace()
-    run_simple('192.168.33.10', 5003, app, use_debugger=True, use_reloader=True)
+    run_simple('192.168.33.10', 5004, app, use_debugger=True, use_reloader=True)
