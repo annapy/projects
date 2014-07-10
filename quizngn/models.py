@@ -1,10 +1,20 @@
-#from flask import Flask, request
-from flask.ext.sqlalchemy import SQLAlchemy
-from rstflapi import app
-import textwrap
-import utls
+###########################################################################
+#
+#   File Name      Date          Owner               Description
+#   ----------   --------      ---------        -----------------
+#   models.py      7/8/2014   Archana Bahuguna  Db table design/models 
+#                                                for qzengine APIs 
+#
+#   Schema- models.db - tables: Users, Quizzes, Questions and Answer choices
+#
+###########################################################################
 
-app.config['SQLALCHEMY_DATABASE_URI']='sqlite:////home/vagrant/projects/quizngn/qz.db'
+from flask.ext.sqlalchemy import SQLAlchemy
+import textwrap, os
+from views import app, bcrypt
+
+file_path = os.path.abspath(os.getcwd())+"/models.db"
+app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///'+file_path
 db = SQLAlchemy(app)
 
 MAXUSRS = 20
@@ -16,6 +26,9 @@ class User(db.Model):
     """ Defines the columns and keys for User table """
     userid    = db.Column(db.Integer, primary_key=True)
     username  = db.Column(db.String)
+    password  = db.Column(db.String)
+    role      = db.Column(db.String)
+    qzscore   = db.Column(db.Integer)
 
     quizzes = db.relationship("Quiz", backref = "user")
 
@@ -26,12 +39,15 @@ class User(db.Model):
 
     gen_userid = generate_userid()
 
-    def __init__ (self, username):
+    def __init__ (self, username, password, role, qzscore=0):
         self.userid = self.gen_userid.next()
         self.username = username
+        self.password = password
+        self.role = role
+        self.qzscore = qzscore
 
     def __repr__(self):
-        return '%i        %s' % (self.userid, self.username)
+        return '%i        %s            %s                    %s      %i' % (self.userid, self.username, self.password, self.role, self.qzscore)
     
 class Quiz(db.Model):
     """ Defines the columns and keys for Quiz table """
@@ -129,14 +145,11 @@ def db_init():
 
     db.create_all()
 
-    """
     #populate User table
-    user1 = User( "Archana")
-    user2 = User( "Shirley")
+    user1 = User("Archana", bcrypt.generate_password_hash("mypwd"), "admin")
     db.session.add(user1)
-    db.session.add(user2)
     db.session.commit()
-    """
+
     #populate Quiz table
     qz1 = Quiz( "Python Basics  ", "Simple  ", "Explanation", 1, 2)
     qz2 = Quiz( "Python Advanced", "Moderate", "No text    ", 1)
@@ -155,20 +168,18 @@ def db_init():
 
     #populate Answer choices table
     ans1  = Anschoice(1, 1, "a. This function does nothing      ", True)
-    #ans2  = Anschoice(1, 1, "b. This function returns a fn pass ", False)
-    #ans3  = Anschoice(1, 1, "c. This function is not yet defined", False)
+    ans2  = Anschoice(1, 1, "b. This function returns a fn pass ", False)
+    ans3  = Anschoice(1, 1, "c. This function is not yet defined", False)
     ans4  = Anschoice(1, 2, "a. Yes Python is object oriented   ", True)
     ans5  = Anschoice(1, 2, "b. No Python is not object oriented", False)
     ans6  = Anschoice(1, 2, "c. Python may not be used as OOP l ", True)
     db.session.add(ans1)
-    #db.session.add(ans2)
-    #db.session.add(ans3)
+    db.session.add(ans2)
+    db.session.add(ans3)
     db.session.add(ans4)
     db.session.add(ans5)
     db.session.add(ans6)
     db.session.commit()
-
-    utls.display_tables()
 
     return None
 

@@ -1,13 +1,23 @@
+###########################################################################
+#
+#   File Name      Date        Owner           Description
+#   ---------    -------     ---------        ------------
+#   utls.py     7/8/2014   Archana Bahuguna  Utility fuctions for 
+#                                            qzengine restful APIs
+#
+###########################################################################
+
 from collections import OrderedDict
 from flask import request
-import qzdb
+import models
+import logs
 
 def get_user_from_hdr():
     auth = request.headers.get('Authorization')
-    username = ((auth.rsplit().pop()).rsplit(':')).pop(0)
-    user_obj = qzdb.User.query.filter_by(username=username).first()
+    username = auth.split()[1].split(':')[0]
+    user_obj = models.User.query.filter_by(username=username).first()
     userid = user_obj.userid
-    return userid
+    return userid, username
 
 def serialize_to_json(fields, query_result, a=0):
     """
@@ -31,34 +41,41 @@ def serialize_to_json(fields, query_result, a=0):
 
 def display_tables():
     """ Displays db table entries after processing request """
-    prompt = '__________________________________________\nTo view tables enter Yes/yes/y/No/no/n:'
+    prompt = '__________________________________________\n'\
+             'To view tables enter Yes/yes/y/No/no/n:'
     i = raw_input(prompt)
     if i.lower() in ('yes','y'):
         import os
         os.system('clear')
-        qry = qzdb.User.query.all()
-        print 'User Table\n=============:\nUserid Username \n'
+        qry = models.User.query.all()
+        logs.debug_ ('User Table\n=============:\nUserid  Username'\
+                     '     Pwd     Role     QzScore\n')
         for i in qry:
-            print i
-        print '\n-----------------------------------------------------------'
+            logs.debug_ (i)
+        logs.debug_ ('\n------------------------------------------'\
+                     '-----------------')
 
-        qry = qzdb.Quiz.query.all()
-        print 'Quiz Table\n=============:\nQzid  Title         Difficulty Level   Text                Userid  No Ques\n'
+        qry = models.Quiz.query.all()
+        logs.debug_ ('Quiz Table\n=============:\nQzid  Title     '\
+                 '    Difficulty Level   Text                Userid  No Ques\n')
         for i in qry:
-            print i
-        print '\n-----------------------------------------------------------'
+            logs.debug_ (i)
+        logs.debug_ ('\n--------------------------------------------'
+                '--------------')
 
-        qry = qzdb.Question.query.all()
-        print 'Questions Table\n================:\nQid Qzid               QText                    Ans Text   Userid\n'
+        qry = models.Question.query.all()
+        logs.debug_ ('Questions Table\n================:\nQid Qzid      QText'\
+                      'Ans Text   Userid\n')
         for i in qry:
-            print i
-        print '\n-----------------------------------------------------------'
+            logs.debug_ (i)
+        logs.debug_ ('\n------------------------------------------------------')
 
-        qry = qzdb.Anschoice.query.all()
-        print 'Ans Choices Table\n================:\nAnsid  Qzid  Qid         Choices                               Correct\n'
+        qry = models.Anschoice.query.all()
+        logs.debug_ ('Ans Choices Table\n================:\nAnsid  Qzid'
+                     '  Qid         Choices                          Correct\n')
         for i in qry:
-            print i
-        print '\n-----------------------------------------------------------'
+            logs.debug_ (i)
+        logs.debug_ ('\n------------------------------------------------------')
     else:
         pass
     return None
